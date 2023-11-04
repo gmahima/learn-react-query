@@ -45,7 +45,7 @@ const fetchTodoList = async (): Promise<
   return response.json();
 };
 
-const deleteTodo = async (id: string): Promise<unknown> => {
+const deleteTodo = async (id: string): Promise<void> => {
   const response = await fetch(
     `https://65468e0afe036a2fa955d4ad.mockapi.io/api/v1/todos/${id}`,
     {
@@ -126,6 +126,14 @@ const TodoDetail: React.FC<TodoDetailProps> = ({
 
 const TodoList: React.FC<TodoListProps> = () => {
   const [selectedTodo, setSelectedTodo] = React.useState<string>();
+  const deleteTodoMutation = useMutation({
+    mutationFn: (id: string) => deleteTodo(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ["list"],
+      });
+    },
+  });
   const todoListData = useQuery({
     queryKey: ["list"],
     queryFn: () => fetchTodoList(),
@@ -146,12 +154,24 @@ const TodoList: React.FC<TodoListProps> = () => {
             {todoListData.data.map((todo) => (
               <li
                 key={todo.id}
-                className={`px-2 py-4 mt-2 bg-gray-100 hover:bg-gray-200 ${
+                className={`px-2 py-4 mt-2 bg-gray-100 hover:bg-gray-200 flex justify-between ${
                   todo.id === selectedTodo && "bg-gray-300 hover:bg-gray-300"
                 }`}
-                onClick={() => setSelectedTodo(todo.id)}
               >
+                <button
+                  className="p-4 rounded bg-green-600 "
+                  onClick={() => setSelectedTodo(todo.id)}
+                >
+                  👀
+                </button>
                 {todo.name.charAt(0).toUpperCase() + todo.name.slice(1)}
+
+                <button
+                  onClick={() => deleteTodoMutation.mutate(todo.id)}
+                  className="p-4 rounded bg-red-600 "
+                >
+                  <span className="bg-red-600 rounded-full p-2">🗑️</span>
+                </button>
               </li>
             ))}
             {selectedTodo && (
