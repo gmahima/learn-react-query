@@ -15,9 +15,9 @@ const fetchPokemon = async (name = "ditto"): Promise<PokeAPI.Pokemon> => {
 
 const fetchPokeList = async (
   page: number
-): Promise<{results: PokeAPI.Pokemon[]}> => {
+): Promise<{results: PokeAPI.Pokemon[]; previous: string; next: string}> => {
   const response = await fetch(
-    `https://pokeapi.co/api/v2/pokemon?limit=5&offset=${5 * page + 1}`
+    `https://pokeapi.co/api/v2/pokemon?limit=5&offset=${5 * page}`
   );
   return response.json();
 };
@@ -27,6 +27,7 @@ interface PokeDetailProps {
 }
 interface PokeListProps {
   page: number;
+  setPage: React.Dispatch<React.SetStateAction<number>>;
 }
 
 const queryClient = new QueryClient();
@@ -54,7 +55,7 @@ const PokeDetail: React.FC<PokeDetailProps> = ({name}) => {
   );
 };
 
-const PokeList: React.FC<PokeListProps> = ({page}) => {
+const PokeList: React.FC<PokeListProps> = ({page, setPage}) => {
   const [selectedPokemon, setSelectedPokemon] = React.useState("");
   const {data: pokeListData} = useQuery({
     queryKey: ["list", page],
@@ -79,6 +80,22 @@ const PokeList: React.FC<PokeListProps> = ({page}) => {
               {pokemon.name.charAt(0).toUpperCase() + pokemon.name.slice(1)}
             </li>
           ))}
+          <div className="flex justify-between border border-gray-300 rounded mt-4">
+            <button
+              onClick={() => setPage((page) => page - 1)}
+              disabled={!pokeListData.previous}
+              className={`${!pokeListData.previous && "text-gray-200"}`}
+            >
+              &lt; Prev
+            </button>
+            <button
+              disabled={!pokeListData.next}
+              onClick={() => setPage((page) => page + 1)}
+              className={`${!pokeListData.next && "text-gray-200"}`}
+            >
+              Next &gt;
+            </button>
+          </div>
           {selectedPokemon && <PokeDetail name={selectedPokemon}></PokeDetail>}
         </ul>
       </div>
@@ -91,16 +108,7 @@ function Poke() {
     <QueryClientProvider client={queryClient}>
       <div className="min-h-screen bg-gray-50 p-8 rounded">
         <h1 className="text-4xl text-center">Pokemon</h1>
-        <PokeList page={page} />
-        <div className="flex justify-between bg-gray-100">
-          <button
-            onClick={() => setPage((page) => page - 1)}
-            disabled={page === 0}
-          >
-            &lt; Prev
-          </button>
-          <button onClick={() => setPage((page) => page + 1)}>Next &gt;</button>
-        </div>
+        <PokeList page={page} setPage={setPage} />
       </div>
       <ReactQueryDevtools></ReactQueryDevtools>
     </QueryClientProvider>
