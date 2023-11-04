@@ -4,6 +4,7 @@ import {
   QueryClient,
   QueryClientProvider,
   keepPreviousData,
+  useMutation,
   useQuery,
   useQueryClient,
 } from "@tanstack/react-query";
@@ -27,6 +28,16 @@ const fetchTodoList = async (): Promise<
   return response.json();
 };
 
+const deleteTodo = async (id: string): Promise<unknown> => {
+  const response = await fetch(
+    `https://65468e0afe036a2fa955d4ad.mockapi.io/api/v1/todos/${id}`,
+    {
+      method: "DELETE",
+    }
+  );
+  return response.json();
+};
+
 interface TodoDetailProps {
   id: string;
   total: number;
@@ -35,9 +46,12 @@ interface TodoListProps {}
 
 const queryClient = new QueryClient();
 const TodoDetail: React.FC<TodoDetailProps> = ({id, total}) => {
-  const todoData = useQuery({
+  const todoDataQuery = useQuery({
     queryKey: ["todo", id],
     queryFn: () => fetchTodoById(id),
+  });
+  const deleteTodoMutation = useMutation({
+    mutationFn: (todoId: string) => deleteTodo(todoId),
   });
   const queryClient = useQueryClient();
   useEffect(() => {
@@ -52,19 +66,28 @@ const TodoDetail: React.FC<TodoDetailProps> = ({id, total}) => {
       });
     }
   }, [id, queryClient, total]);
-  if (todoData.error) {
-    return <div>{"Error: " + todoData.error.toString()}</div>;
+  if (todoDataQuery.error) {
+    return <div>{"Error: " + todoDataQuery.error.toString()}</div>;
   }
-
+  const handleDelete = () => {
+    console.log("delete todo: ", id);
+    deleteTodoMutation.mutate(id);
+  };
   return (
     <div className=" w-52 bg-gray-100 rounded pt-4 pb-4 p-8 m-8 mx-auto">
-      {todoData.isSuccess ? (
-        <div>
-          <h2 className="text-xl text-center">
-            {todoData.data.name.toUpperCase()}
+      {todoDataQuery.isSuccess && deleteTodoMutation.isIdle ? (
+        <div className="flex flex-col">
+          <h2 className="text-xl text-center flex flex-col">
+            {todoDataQuery.data.name.toUpperCase()}
           </h2>
           <hr></hr>
-          <p className="text-lg">{todoData.data.description}</p>
+          <p className="text-lg">{todoDataQuery.data.description}</p>
+          <button
+            className="bg-red-800 rounded text-gray-50 py-1 cursor-pointer"
+            onClick={handleDelete}
+          >
+            Delete This Todo
+          </button>
         </div>
       ) : (
         <em>...loading</em>
@@ -131,7 +154,7 @@ function Poke() {
   return (
     <QueryClientProvider client={queryClient}>
       <div className="min-h-screen bg-gray-50 p-8 rounded">
-        <h1 className="text-4xl text-center">Pokemon</h1>
+        <h1 className="text-4xl text-center">Todos</h1>
         <TodoList page={page} setPage={setPage} />
       </div>
       <ReactQueryDevtools></ReactQueryDevtools>
