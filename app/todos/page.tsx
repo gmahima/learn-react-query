@@ -59,11 +59,17 @@ interface TodoDetailProps {
   id: string;
   nextId: string;
   total: number;
+  setSelectedTodo: React.Dispatch<React.SetStateAction<string | undefined>>;
 }
 interface TodoListProps {}
 
 const queryClient = new QueryClient();
-const TodoDetail: React.FC<TodoDetailProps> = ({id, total, nextId}) => {
+const TodoDetail: React.FC<TodoDetailProps> = ({
+  id,
+  total,
+  nextId,
+  setSelectedTodo,
+}) => {
   const todoDataQuery = useQuery({
     queryKey: ["list", "todo", id],
     queryFn: () => fetchTodoById(id),
@@ -74,6 +80,7 @@ const TodoDetail: React.FC<TodoDetailProps> = ({id, total, nextId}) => {
       queryClient.invalidateQueries({
         queryKey: ["list"],
       });
+      setSelectedTodo(nextId);
     },
   });
   const queryClient = useQueryClient();
@@ -94,7 +101,7 @@ const TodoDetail: React.FC<TodoDetailProps> = ({id, total, nextId}) => {
   };
   return (
     <div className=" w-52 bg-gray-100 rounded pt-4 pb-4 p-8 m-8 mx-auto">
-      {todoDataQuery.isSuccess && deleteTodoMutation.isIdle ? (
+      {todoDataQuery.isSuccess ? (
         <div className="flex flex-col">
           <h2 className="text-xl text-center flex flex-col">
             {todoDataQuery.data.name.toUpperCase()}
@@ -153,6 +160,7 @@ const TodoList: React.FC<TodoListProps> = () => {
                   nextId={getNextItemId(selectedTodo, todoListData.data)}
                   id={selectedTodo}
                   total={todoListData.data.length}
+                  setSelectedTodo={setSelectedTodo}
                 />
                 <div className="px-2 flex justify-between border border-gray-300 rounded mt-4">
                   <button
