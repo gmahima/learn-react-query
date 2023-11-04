@@ -2,6 +2,8 @@
 import {QueryClientProvider, useQuery} from "react-query";
 import {QueryClient} from "react-query";
 import {ErrorBoundary} from "react-error-boundary";
+import {ReactQueryDevtools} from "@tanstack/react-query-devtools";
+
 import React from "react";
 
 interface Props {
@@ -23,6 +25,7 @@ type CounterProps = {
 const ErrorFallback: React.FC<Props> = ({error}) => {
   return (
     <div>
+      <p>from error boundary</p>
       <p>An error occurred: {error.message}</p>
     </div>
   );
@@ -32,7 +35,7 @@ const queryClient = new QueryClient();
 
 const query = `
     query GetUserArticles($page: Int!) {
-        user(username: "BlakeYeboah") {
+        user(username: "gmahima") {
             publication {
                 posts(page: $page) {
                     title
@@ -61,11 +64,12 @@ function Counter() {
   const {data} = useQuery("userArticles", getData, {
     suspense: true,
   });
+  console.log("data", data);
 
   return (
     <div className="min-h-screen h-full bg-gray-50">
       <ul className="flex flex-col p-12 space-y-4">
-        {data.data.user.publication.posts.map((post) => (
+        {data.data.user.publication.posts?.map((post) => (
           <li key={post.title}>{post.title}</li>
         ))}
       </ul>
