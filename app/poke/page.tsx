@@ -7,7 +7,7 @@ import {
   useQuery,
 } from "@tanstack/react-query";
 import {ReactQueryDevtools} from "@tanstack/react-query-devtools";
-import React from "react";
+import React, {useState} from "react";
 const fetchPokemon = async (name = "ditto"): Promise<PokeAPI.Pokemon> => {
   const response = await fetch(`https://pokeapi.co/api/v2/pokemon/${name}`);
   return response.json();
@@ -17,7 +17,7 @@ const fetchPokeList = async (
   page: number
 ): Promise<{results: PokeAPI.Pokemon[]}> => {
   const response = await fetch(
-    `https://pokeapi.co/api/v2/pokemon?limit=10&offset=0`
+    `https://pokeapi.co/api/v2/pokemon?limit=5&offset=${5 * page + 1}`
   );
   return response.json();
 };
@@ -25,7 +25,9 @@ const fetchPokeList = async (
 interface PokeDetailProps {
   name: string;
 }
-interface PokeListProps {}
+interface PokeListProps {
+  page: number;
+}
 
 const queryClient = new QueryClient();
 const PokeDetail: React.FC<PokeDetailProps> = ({name}) => {
@@ -37,7 +39,7 @@ const PokeDetail: React.FC<PokeDetailProps> = ({name}) => {
     return <div>{"Error: " + error.toString()}</div>;
   }
   return (
-    <div className=" w-52 bg-gray-50 rounded pt-4 pb-4 p-8">
+    <div className=" w-52 bg-gray-100 rounded pt-4 pb-4 p-8 m-8 mx-auto">
       <h2 className="text-xl text-center">{name.toUpperCase()}</h2>
       <hr></hr>
       <h3 className="text-lg">Abilities</h3>
@@ -52,11 +54,11 @@ const PokeDetail: React.FC<PokeDetailProps> = ({name}) => {
   );
 };
 
-const PokeList: React.FC<PokeListProps> = () => {
+const PokeList: React.FC<PokeListProps> = ({page}) => {
   const [selectedPokemon, setSelectedPokemon] = React.useState("");
   const {data: pokeListData} = useQuery({
-    queryKey: ["list"],
-    queryFn: () => fetchPokeList(1),
+    queryKey: ["list", page],
+    queryFn: () => fetchPokeList(page),
   });
   if (!pokeListData) {
     return "Loading...";
@@ -64,7 +66,7 @@ const PokeList: React.FC<PokeListProps> = () => {
   return (
     <div>
       <h2 className="text-center">Pokemon</h2>
-      <div className="flex flex-col bg-gray-50 rounded p-8">
+      <div className="flex flex-col">
         <ul>
           {pokeListData.results.map((pokemon) => (
             <li
@@ -84,11 +86,21 @@ const PokeList: React.FC<PokeListProps> = () => {
   );
 };
 function Poke() {
+  const [page, setPage] = useState(0);
   return (
     <QueryClientProvider client={queryClient}>
-      <div className="min-h-screen bg-gray-100 p-8">
+      <div className="min-h-screen bg-gray-50 p-8 rounded">
         <h1 className="text-4xl text-center">Pokemon</h1>
-        <PokeList />
+        <PokeList page={page} />
+        <div className="flex justify-between bg-gray-100">
+          <button
+            onClick={() => setPage((page) => page - 1)}
+            disabled={page === 0}
+          >
+            &lt; Prev
+          </button>
+          <button onClick={() => setPage((page) => page + 1)}>Next &gt;</button>
+        </div>
       </div>
       <ReactQueryDevtools></ReactQueryDevtools>
     </QueryClientProvider>
