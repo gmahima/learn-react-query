@@ -65,17 +65,22 @@ interface TodoListProps {}
 const queryClient = new QueryClient();
 const TodoDetail: React.FC<TodoDetailProps> = ({id, total, nextId}) => {
   const todoDataQuery = useQuery({
-    queryKey: ["todo", id],
+    queryKey: ["list", "todo", id],
     queryFn: () => fetchTodoById(id),
   });
   const deleteTodoMutation = useMutation({
     mutationFn: (todoId: string) => deleteTodo(todoId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ["list"],
+      });
+    },
   });
   const queryClient = useQueryClient();
   useEffect(() => {
     if (nextId) {
       queryClient.prefetchQuery({
-        queryKey: ["todo", nextId],
+        queryKey: ["list", "todo", nextId],
         queryFn: () => fetchTodoById(nextId),
       });
     }
@@ -103,6 +108,8 @@ const TodoDetail: React.FC<TodoDetailProps> = ({id, total, nextId}) => {
             Delete This Todo
           </button>
         </div>
+      ) : deleteTodoMutation.isSuccess ? (
+        <em>Todo deleted</em>
       ) : (
         <em>...loading</em>
       )}
