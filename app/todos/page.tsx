@@ -10,6 +10,23 @@ import {
 } from "@tanstack/react-query";
 import {ReactQueryDevtools} from "@tanstack/react-query-devtools";
 import React, {useEffect, useState} from "react";
+const getNextItemId = (id: string | undefined, list: {id: string}[]) => {
+  const index = list.findIndex((item) => item.id === id);
+  return list[index + 1]?.id;
+};
+const getPrevItemId = (id: string | undefined, list: {id: string}[]) => {
+  const index = list.findIndex((item) => item.id === id);
+  return list[index - 1]?.id;
+};
+const isFirstItem = (id: string, list: {id: string}[]) => {
+  const index = list.findIndex((item) => item.id === id);
+  return index === 0;
+};
+const isLastItem = (id: string, list: {id: string}[]) => {
+  const index = list.findIndex((item) => item.id === id);
+  return index === list.length - 1;
+};
+
 const fetchTodoById = async (
   id: string
 ): Promise<{name: string; description: string; id: string}> => {
@@ -40,12 +57,13 @@ const deleteTodo = async (id: string): Promise<unknown> => {
 
 interface TodoDetailProps {
   id: string;
+  nextId: string;
   total: number;
 }
 interface TodoListProps {}
 
 const queryClient = new QueryClient();
-const TodoDetail: React.FC<TodoDetailProps> = ({id, total}) => {
+const TodoDetail: React.FC<TodoDetailProps> = ({id, total, nextId}) => {
   const todoDataQuery = useQuery({
     queryKey: ["todo", id],
     queryFn: () => fetchTodoById(id),
@@ -55,17 +73,13 @@ const TodoDetail: React.FC<TodoDetailProps> = ({id, total}) => {
   });
   const queryClient = useQueryClient();
   useEffect(() => {
-    const nextId = (+id + 1).toString();
-    const prevId = (+id - 1).toString();
-    const isLast = total === +id;
-    const isFirst = +id <= 1;
-    if (!isLast) {
+    if (nextId) {
       queryClient.prefetchQuery({
         queryKey: ["todo", nextId],
         queryFn: () => fetchTodoById(nextId),
       });
     }
-  }, [id, queryClient, total]);
+  }, [id, queryClient, total, nextId]);
   if (todoDataQuery.error) {
     return <div>{"Error: " + todoDataQuery.error.toString()}</div>;
   }
@@ -97,12 +111,18 @@ const TodoDetail: React.FC<TodoDetailProps> = ({id, total}) => {
 };
 
 const TodoList: React.FC<TodoListProps> = () => {
-  const [selectedTodo, setSelectedTodo] = React.useState("1");
+  const [selectedTodo, setSelectedTodo] = React.useState<string>();
   const todoListData = useQuery({
     queryKey: ["list"],
     queryFn: () => fetchTodoList(),
     placeholderData: keepPreviousData,
   });
+
+  //   useEffect(() => {
+  //     if (todoListData.isSuccess) {
+  //       setSelectedTodo(todoListData.data[0].id);
+  //     }
+  //   }, [todoListData.isSuccess]);
 
   if (todoListData.isSuccess) {
     return (
@@ -121,26 +141,44 @@ const TodoList: React.FC<TodoListProps> = () => {
               </li>
             ))}
             {selectedTodo && (
-              <TodoDetail id={selectedTodo} total={todoListData.data.length} />
+              <>
+                <TodoDetail
+                  nextId={getNextItemId(selectedTodo, todoListData.data)}
+                  id={selectedTodo}
+                  total={todoListData.data.length}
+                />
+                <div className="px-2 flex justify-between border border-gray-300 rounded mt-4">
+                  <button
+                    onClick={() => {
+                      setSelectedTodo((id) =>
+                        getPrevItemId(id, todoListData.data)
+                      );
+                    }}
+                    disabled={isFirstItem(selectedTodo, todoListData.data)}
+                    className={`${
+                      isFirstItem(selectedTodo, todoListData.data) &&
+                      "text-gray-200"
+                    }`}
+                  >
+                    &lt; Prev
+                  </button>
+                  <button
+                    disabled={isLastItem(selectedTodo, todoListData.data)}
+                    onClick={() =>
+                      setSelectedTodo((id) =>
+                        getNextItemId(id, todoListData.data)
+                      )
+                    }
+                    className={`${
+                      isLastItem(selectedTodo, todoListData.data) &&
+                      "text-gray-200"
+                    }`}
+                  >
+                    Next &gt;
+                  </button>
+                </div>
+              </>
             )}
-            <div className="px-2 flex justify-between border border-gray-300 rounded mt-4">
-              <button
-                onClick={() => setSelectedTodo((id) => (+id - 1).toString())}
-                disabled={+selectedTodo <= 1}
-                className={`${+selectedTodo <= 1 && "text-gray-200"}`}
-              >
-                &lt; Prev
-              </button>
-              <button
-                disabled={todoListData.data.length === +selectedTodo}
-                onClick={() => setSelectedTodo((id) => (+id + 1).toString())}
-                className={`${
-                  todoListData.data.length === +selectedTodo && "text-gray-200"
-                }`}
-              >
-                Next &gt;
-              </button>
-            </div>
           </ul>
         </div>
       </div>
@@ -155,7 +193,7 @@ function Poke() {
     <QueryClientProvider client={queryClient}>
       <div className="min-h-screen bg-gray-50 p-8 rounded">
         <h1 className="text-4xl text-center">Todos</h1>
-        <TodoList page={page} setPage={setPage} />
+        <TodoList />
       </div>
       <ReactQueryDevtools></ReactQueryDevtools>
     </QueryClientProvider>
